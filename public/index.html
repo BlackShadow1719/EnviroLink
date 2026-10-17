@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EnviroLink | Habitat Monitoring</title>
+<style>
+:root {
+  font-family: Arial, sans-serif;
+  color: #183b30;
+  background: #f2f7f3;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+header {
+  background: #123d32;
+  color: white;
+  padding: 25px 5%;
+}
+header h1 { margin: 0; font-size: 30px; }
+header p { color: #c8e2d5; margin-bottom: 0; }
+main { max-width: 1200px; margin: auto; padding: 25px 5%; }
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+button {
+  background: #187451;
+  color: white;
+  border: 0;
+  padding: 11px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.card {
+  background: white;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid #dce8df;
+  border-top: 6px solid #21864f;
+  box-shadow: 0 4px 14px #183b300b;
+}
+.card.green { border-top-color: #21864f; }
+.card.yellow { border-top-color: #e0ad18; }
+.card.red { border-top-color: #d74747; }
+.card.blue { border-top-color: #3984ce; }
+.card h3 { margin: 6px 0 14px; }
+.status {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #e1f4e8;
+  font-size: 12px;
+  font-weight: bold;
+}
+.metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid #edf1ed;
+  padding: 9px 0;
+  font-size: 14px;
+}
+.metric strong { text-align: right; }
+.small { color: #63766d; font-size: 13px; }
+section {
+  background: white;
+  padding: 20px;
+  border-radius: 14px;
+  margin-top: 25px;
+  border: 1px solid #dce8df;
+}
+form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+label { display: block; margin: 12px 0 5px; font-size: 14px; }
+input, select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd9cf;
+  border-radius: 7px;
+}
+.notice {
+  padding: 13px;
+  background: #fff4d6;
+  border-radius: 9px;
+  margin-top: 18px;
+  font-size: 13px;
+}
+#result { line-height: 1.7; }
+footer { margin: 25px 0; color: #63766d; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>♧ EnviroLink</h1>
+  <p>Environmental Monitoring Network · Habitat Dashboard</p>
+</header>
+
+<main>
+  <div class="top">
+    <div>
+      <h2>Habitat monitoring</h2>
+      <div class="small" id="summary">Connecting to cloud...</div>
+    </div>
+    <button onclick="loadBoxes()">Refresh readings</button>
+  </div>
+
+  <div class="grid" id="boxes"></div>
+
+  <div class="notice" id="notice">
+    Demonstration values are not real measurements. Canopy cover remains
+    estimated until the camera system is connected.
+  </div>
+
+  <section>
+    <h2>Council habitat target questionnaire</h2>
+    <p class="small">
+      Select the intended conditions for a habitat. This starter generates
+      a suggested target summary locally; it does not save council settings.
+    </p>
+
+    <form id="targetForm">
+      <div>
+        <label for="habitat">Habitat type</label>
+        <select id="habitat">
+          <option>Coastal vegetation</option>
+          <option>Wetland</option>
+          <option>Open woodland</option>
+          <option>Rainforest</option>
+          <option>Urban park</option>
+        </select>
+
+        <label for="canopy">Target canopy cover (%)</label>
+        <input id="canopy" type="number" min="0" max="100"
+          value="70" required>
+
+        <label for="soil">Target soil moisture (%)</label>
+        <input id="soil" type="number" min="0" max="100"
+          value="60" required>
+      </div>
+
+      <div>
+        <label for="temp">Target air temperature (°C)</label>
+        <input id="temp" type="number" min="-10" max="60"
+          value="24" required>
+
+        <label for="humidity">Target humidity (%)</label>
+        <input id="humidity" type="number" min="0" max="100"
+          value="65" required>
+
+        <label for="priority">Management priority</label>
+        <select id="priority">
+          <option>Protect native vegetation</option>
+          <option>Reduce drought stress</option>
+          <option>Restore canopy cover</option>
+          <option>Improve habitat quality</option>
+          <option>Identify maintenance needs</option>
+        </select>
+
+        <button type="submit" style="margin-top:15px">
+          Generate targets
+        </button>
+      </div>
+    </form>
+    <p id="result" aria-live="polite"></p>
+  </section>
+
+  <footer>
+    EnviroLink cloud starter. Target values must be determined for the
+    specific habitat. Four example cards are not live measurements.
+  </footer>
+</main>
+
+<script>
+const demo = [
+  {
+    id: "DEMO-G", location: "Demonstration habitat",
+    soilMoisture: 68, canopyCover: 82,
+    temperature: 24.5, humidity: 71,
+    repairNeeded: false, simulated: true,
+    online: true, colour: "green"
+  },
+  {
+    id: "DEMO-Y", location: "Moderate conditions example",
+    soilMoisture: 42, canopyCover: 55,
+    temperature: 28, humidity: 54,
+    repairNeeded: false, simulated: true,
+    online: true, colour: "yellow"
+  },
+  {
+    id: "DEMO-R", location: "Critical conditions example",
+    soilMoisture: 15, canopyCover: 24,
+    temperature: 34, humidity: 32,
+    repairNeeded: false, simulated: true,
+    online: true, colour: "red"
+  },
+  {
+    id: "DEMO-B", location: "Maintenance example",
+    soilMoisture: 50, canopyCover: 50,
+    temperature: 25, humidity: 60,
+    repairNeeded: true, simulated: true,
+    online: true, colour: "blue"
+  }
+];
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  })[c]);
+}
+
+function getStatus(b) {
+  if (!b.online) return ["Offline", "blue"];
+  if (b.repairNeeded) return ["Repair needed", "blue"];
+
+  if (Number(b.soilMoisture) < 25 ||
+      Number(b.canopyCover) < 30 ||
+      Number(b.temperature) > 35) {
+    return ["Critical", "red"];
+  }
+
+  if (Number(b.soilMoisture) < 45 ||
+      Number(b.canopyCover) < 55 ||
+      Number(b.humidity) < 35) {
+    return ["Moderate", "yellow"];
+  }
+
+  return ["Good", "green"];
+}
+
+function render(boxList, isDemo) {
+  const container = document.getElementById("boxes");
+  container.innerHTML = "";
+
+  boxList.forEach(b => {
+    const [status, colour] = isDemo
+      ? [
+          b.id === "DEMO-G" ? "Good" :
+          b.id === "DEMO-Y" ? "Moderate" :
+          b.id === "DEMO-R" ? "Critical" : "Repair needed",
+          b.colour
+        ]
+      : getStatus(b);
+
+    const card = document.createElement("article");
+    card.className = "card " + colour;
+
+    const metric = (label, value, unit) =>
+      `<div class="metric"><span>${label}</span>
+       <strong>${value}${unit}</strong></div>`;
+
+    card.innerHTML = `
+      <span class="status">${escapeHTML(status)}</span>
+      <p class="small">${escapeHTML(b.id)}</p>
+      <h3>${escapeHTML(b.location || b.id)}</h3>
+      ${metric("Soil moisture", Number(b.soilMoisture).toFixed(0), "%")}
+      ${metric("Canopy cover", Number(b.canopyCover).toFixed(0), "%")}
+      ${metric("Air temperature", Number(b.temperature).toFixed(1), " °C")}
+      ${metric("Humidity", Number(b.humidity).toFixed(0), "%")}
+      <p class="small">${isDemo || b.simulated
+        ? "DEMONSTRATION DATA"
+        : "Updated " + escapeHTML(
+            new Date(b.updatedAt).toLocaleString()
+          )}</p>
+    `;
+
+    container.appendChild(card);
+  });
+
+  document.getElementById("summary").textContent = isDemo
+    ? "Showing four demonstration cards; live boxes have not uploaded yet."
+    : `${boxList.length} box(es) loaded from cloud storage.`;
+}
+
+async function loadBoxes() {
+  try {
+    const response = await fetch("/api/boxes", { cache: "no-store" });
+    if (!response.ok) throw new Error("Cloud API error");
+
+    const data = await response.json();
+
+    if (data.boxes && data.boxes.length) {
+      render(data.boxes, false);
+      document.getElementById("notice").textContent =
+        "Live box data is shown where available. Canopy cover is estimated " +
+        "until the camera system is connected.";
+    } else {
+      render(demo, true);
+    }
+  } catch (error) {
+    render(demo, true);
+    document.getElementById("summary").textContent =
+      "Cloud unavailable; showing demonstration cards.";
+  }
+}
+
+document.getElementById("targetForm").addEventListener("submit", event => {
+  event.preventDefault();
+
+  document.getElementById("result").textContent =
+    "Suggested target summary: " +
+    document.getElementById("habitat").value +
+    "; canopy " + document.getElementById("canopy").value + "%; soil moisture " +
+    document.getElementById("soil").value + "%; temperature " +
+    document.getElementById("temp").value + " °C; humidity " +
+    document.getElementById("humidity").value + "%; priority: " +
+    document.getElementById("priority").value +
+    ". These are draft targets and have not been saved.";
+});
+
+loadBoxes();
+setInterval(loadBoxes, 30000);
+</script>
+</body>
+</html>
